@@ -167,6 +167,91 @@ def test_audio_recording(device_index=None, duration=3, sample_rate=16000, chunk
         p.terminate()
 
 
+def test_audio_playback(device_index=None, duration=2, sample_rate=16000):
+    """Test audio playback (output) to the specified device"""
+    print("\n" + "=" * 60)
+    print(f"Testing Audio Playback (Duration: {duration}s)")
+    print("=" * 60)
+    
+    p = pyaudio.PyAudio()
+    
+    try:
+        # Generate a test tone (440 Hz, A4 note)
+        print("\n🔊 Generating test tone (440 Hz - A4 note)...")
+        
+        frequency = 440  # Hz
+        t = np.linspace(0, duration, int(sample_rate * duration))
+        
+        # Generate sine wave
+        audio_data = np.sin(2 * np.pi * frequency * t)
+        
+        # Apply fade in/out to avoid clicks
+        fade_samples = int(sample_rate * 0.1)  # 100ms fade
+        audio_data[:fade_samples] *= np.linspace(0, 1, fade_samples)
+        audio_data[-fade_samples:] *= np.linspace(1, 0, fade_samples)
+        
+        # Convert to int16
+        audio_data = (audio_data * 32767 * 0.5).astype(np.int16)
+        
+        print(f"\n📡 Opening audio output stream...")
+        print(f"   Sample Rate: {sample_rate} Hz")
+        print(f"   Channels: 1 (Mono)")
+        print(f"   Format: 16-bit PCM")
+        
+        if device_index is not None:
+            print(f"   Device Index: {device_index}")
+        
+        stream = p.open(
+            format=pyaudio.paInt16,
+            channels=1,
+            rate=sample_rate,
+            output=True,
+            output_device_index=device_index,
+            frames_per_buffer=1024
+        )
+        
+        print("✅ Audio output stream opened successfully!")
+        print(f"\n🔊 Playing test tone for {duration} seconds...")
+        print("   (You should hear a constant beep)")
+        
+        # Play audio
+        stream.write(audio_data.tobytes())
+        
+        # Close stream
+        stream.stop_stream()
+        stream.close()
+        
+        print("\n✅ Playback completed!")
+        
+        # Ask user if they heard it
+        print("\n" + "=" * 60)
+        heard = input("Did you hear the test tone? (y/n): ").strip().lower()
+        
+        if heard == 'y':
+            print("✅ Audio output is working!")
+            return True
+        else:
+            print("❌ Audio output may not be working properly")
+            print("\nPossible issues:")
+            print("  - Audio is muted in Windows")
+            print("  - WSL audio forwarding not configured")
+            print("  - Wrong output device selected")
+            return False
+        
+    except Exception as e:
+        print(f"\n❌ Failed to play audio: {e}")
+        print("\nPossible solutions:")
+        print("  1. Check if PulseAudio is running")
+        print("  2. Check audio sinks:")
+        print("     $ pactl list sinks short")
+        print("  3. Set default sink if needed:")
+        print("     $ pactl set-default-sink <sink-name>")
+        print("  4. For WSL2, ensure audio forwarding is set up")
+        return False
+    finally:
+        p.terminate()
+
+
 def check_pulseaudio():
     """Check if PulseAudio is running"""
     print("\n" + "=" * 60)
@@ -201,18 +286,32 @@ def check_pulseaudio():
                 if line.strip():
                     print(f"   {line}")
         
-        # List audio sources
+        # List audio sources (input)
         result = subprocess.run(['pactl', 'list', 'sources', 'short'], 
                               capture_output=True, 
                               text=True, 
                               timeout=2)
         
         if result.returncode == 0 and result.stdout.strip():
-            print("\n🎤 Available PulseAudio Sources:")
+            print("\n🎤 Available PulseAudio Sources (Input):")
             for line in result.stdout.strip().split('\n'):
                 print(f"   {line}")
         else:
             print("\n⚠️  No PulseAudio sources found")
+            print("   You may need to configure audio forwarding from Windows")
+        
+        # List audio sinks (output)
+        result = subprocess.run(['pactl', 'list', 'sinks', 'short'], 
+                              capture_output=True, 
+                              text=True, 
+                              timeout=2)
+        
+        if result.returncode == 0 and result.stdout.strip():
+            print("\n🔊 Available PulseAudio Sinks (Output):")
+            for line in result.stdout.strip().split('\n'):
+                print(f"   {line}")
+        else:
+            print("\n⚠️  No PulseAudio sinks found")
             print("   You may need to configure audio forwarding from Windows")
         
         return True
@@ -257,27 +356,51 @@ def main():
     if p:
         p.terminate()
     
-    # Test recording with default device
+    # Test 1: Audio Playback (Output)
     print("\n" + "=" * 60)
+    print("TEST 1: Audio Output (Playback)")
+    print("=" * 60)
+    input("Press ENTER to start playback test... ")
+    
+    playback_success = test_audio_playback(device_index=None)  # Use default output
+    
+    # Test 2: Audio Recording (Input)
+    print("\n" + "=" * 60)
+    print("TEST 2: Audio Input (Recording)")
+    print("=" * 60)
     input("Press ENTER to start recording test... ")
     
-    success = test_audio_recording(device_index=default_device)
+    recording_success = test_audio_recording(device_index=default_device)
     
     # Final summary
     print("\n" + "=" * 60)
     print("📋 TEST SUMMARY")
     print("=" * 60)
     
-    if success:
-        print("✅ Audio recording test completed successfully!")
-        print("\nYour audio setup appears to be working.")
-        print("If ASR still doesn't work, check:")
+    print(f"\n🔊 Audio Output (Playback): {'✅ PASS' if playback_success else '❌ FAIL'}")
+    print(f"🎤 Audio Input (Recording): {'✅ PASS' if recording_success else '❌ FAIL'}")
+    
+    if playback_success and recording_success:
+        print("\n✅ All audio tests passed!")
+        print("\nYour audio setup appears to be working correctly.")
+        print("If ASR/TTS still doesn't work, check:")
         print("  - ROS 2 environment variables")
         print("  - Python virtual environment compatibility")
-        print("  - ASR node specific configurations")
+        print("  - Node specific configurations")
+    elif playback_success and not recording_success:
+        print("\n⚠️  Output works but input doesn't")
+        print("\nFix the microphone/input issues:")
+        print("  - Check microphone permissions")
+        print("  - Check PulseAudio source configuration")
+    elif not playback_success and recording_success:
+        print("\n⚠️  Input works but output doesn't")
+        print("\nFix the speaker/output issues:")
+        print("  - Check if audio is muted")
+        print("  - Check PulseAudio sink configuration")
+        print("  - For WSL2, ensure audio forwarding is set up")
     else:
-        print("❌ Audio recording test failed")
-        print("\nPlease fix the audio issues before running ASR node.")
+        print("\n❌ Both audio tests failed")
+        print("\nPlease fix the audio setup before running ASR/TTS nodes.")
     
     print("=" * 60)
 

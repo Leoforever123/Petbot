@@ -59,6 +59,12 @@ class CombinedVADASRNode(Node):
         self.nospeak_buffer = deque()
         self.vad_state = 0 # 0 = silence, 1 = speaking
         self.pre_speech_buffer = deque()
+        
+        # TTS state - for echo cancellation
+        self.tts_is_playing = False
+        
+        # AI thinking state - also pause during LLM processing
+        self.ai_is_thinking = False
 
         # Threading control
         self._is_active = False
@@ -134,6 +140,24 @@ class CombinedVADASRNode(Node):
         # Create ASR result publisher
         self.asr_result_publisher = self.create_publisher(String, '/asr_result', 10)
         self.get_logger().info("Publisher '/asr_result' created.")
+        
+        # Subscribe to TTS life cycle to prevent echo
+        self.tts_life_subscription = self.create_subscription(
+            String,
+            '/tts_life',
+            self.tts_life_callback,
+            10
+        )
+        self.get_logger().info("Subscribed to '/tts_life' for echo cancellation.")
+        
+        # Subscribe to AI thinking state to pause during LLM processing
+        self.ai_thinking_subscription = self.create_subscription(
+            String,
+            '/ai_thinking',
+            self.ai_thinking_callback,
+            10
+        )
+        self.get_logger().info("Subscribed to '/ai_thinking' to pause during AI processing.")
 
         # Initialize PyAudio and start audio processing
         try:
@@ -173,6 +197,11 @@ class CombinedVADASRNode(Node):
                 if rms < self.rms_threshold:
                     audio_chunk_int16 = np.zeros_like(audio_chunk_int16).tobytes()
                 
+                # Skip processing if TTS is playing or AI is thinking
+                if self.tts_is_playing or self.ai_is_thinking:
+                    time.sleep(0.01)  # Small delay to avoid busy waiting
+                    continue
+                
                 # Add current chunk to pre-speech buffer
                 self.pre_speech_buffer.append(audio_chunk_int16)
 
@@ -210,6 +239,44 @@ class CombinedVADASRNode(Node):
             except Exception as e:
                 self.get_logger().error(f"Error in audio processing loop: {e}")
                 # Potentially try to recover or transition to error state if critical
+
+    def tts_life_callback(self, msg):
+        """
+        Callback for TTS life cycle events.
+        Pauses ASR processing when TTS is playing to prevent echo.
+        
+        Args:
+            msg (String): 'start' when TTS begins, 'end' when TTS finishes
+        """
+        if msg.data == 'start':
+            self.tts_is_playing = True
+            self.get_logger().info("TTS started - pausing ASR to prevent echo")
+            # If currently recording, stop it to avoid capturing TTS output
+            if self.is_recording:
+                self.get_logger().info("Stopping current recording due to TTS start")
+                self.stop_recording()
+        elif msg.data == 'end':
+            self.tts_is_playing = False
+            self.get_logger().info("TTS ended - resuming ASR")
+    
+    def ai_thinking_callback(self, msg):
+        """
+        Callback for AI thinking state.
+        Pauses ASR processing when AI is thinking to avoid interruption.
+        
+        Args:
+            msg (String): 'start' when AI begins thinking, 'end' when done
+        """
+        if msg.data == 'start':
+            self.ai_is_thinking = True
+            self.get_logger().info("AI thinking started - pausing ASR")
+            # Stop current recording if any
+            if self.is_recording:
+                self.get_logger().info("Stopping recording due to AI processing")
+                self.stop_recording()
+        elif msg.data == 'end':
+            self.ai_is_thinking = False
+            self.get_logger().info("AI thinking ended - resuming ASR")
 
     def destroy_resources(self):
         """

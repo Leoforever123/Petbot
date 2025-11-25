@@ -1,0 +1,26 @@
+can==0.0.0
+dashscope==1.25.1
+pyyaml==6.0.2
+fastapi==0.121.3
+loguru==0.7.3
+numpy<2.3.0
+Pillow==12.0.0
+pyaudio==0.2.14
+pydub==0.25.1
+pyserial==3.5
+python-dotenv==1.2.1
+Requests==2.32.5
+rosidl_generator_py==0.22.2
+rosidl_parser==4.6.6
+service_msgs==2.0.3
+sounddevice==0.5.3
+std_msgs==5.3.6
+ten_vad==1.0.6.8
+uvicorn==0.38.0
+opencv-python==4.12.0.88
+# easy-asr-server
+git+https://github.com/3rd-Musketeer/easy-asr-server.git
+# easy-tts-server
+git+https://github.com/3rd-Musketeer/easy-tts-server.git
+# ten-vad
+git+https://github.com/TEN-framework/ten-vad.git
