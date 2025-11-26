@@ -8,8 +8,8 @@ cd "$SCRIPT_DIR"
 
 # Source ROS 2 environment and service definitions
 # Check if install directory exists in examples or project root
-if [ -f "../examples/install/setup.bash" ]; then
-    source ../examples/install/setup.bash
+if [ -f "../nodes/install/setup.bash" ]; then
+    source ../nodes/install/setup.bash
 elif [ -f "../install/setup.bash" ]; then
     source ../install/setup.bash
 else
@@ -74,13 +74,13 @@ echo ""
 
 # Start all nodes in the background with output
 echo "Starting ASR Node..."
-python3 ../examples/asr_node.py &
+python3 ../nodes/asr_node.py &
 ASR_PID=$!
 
 sleep 2
 
 echo "Starting TTS Node..."
-python3 ../examples/tts_node.py &
+python3 ../nodes/tts_node.py &
 TTS_PID=$!
 
 sleep 2

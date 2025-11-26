@@ -29,13 +29,13 @@ fi
 
 # Start all nodes in the background with output
 echo "Starting ASR Node..."
-python3 ../examples/asr_node.py &
+python3 ../nodes/asr_node.py &
 ASR_PID=$!
 
 sleep 2
 
 echo "Starting TTS Node..."
-python3 ../examples/tts_node.py &
+python3 ../nodes/tts_node.py &
 TTS_PID=$!
 
 sleep 2
