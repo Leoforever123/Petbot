@@ -62,7 +62,7 @@ apt-get install -y \
 
 **建立ros2工作空间**
 ```bash
-# 1. 创建工作空间
+# 1. 创建工作空间，注意这里的路径你需要设置好合适的（）
 mkdir -p ~/workspace/ros2_ws/src
 cd ~/workspace/ros2_ws/src
 

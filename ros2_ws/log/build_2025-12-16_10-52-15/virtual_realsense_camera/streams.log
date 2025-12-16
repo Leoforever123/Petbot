@@ -1,0 +1,28 @@
+[0.631s] Invoking command in '/workspace/ros2_ws/src/virtual_realsense_camera': PYTHONPATH=/workspace/ros2_ws/build/virtual_realsense_camera/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/workspace/ros2_ws/install/virtual_realsense_camera/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/virtual_realsense_camera build --build-base /workspace/ros2_ws/build/virtual_realsense_camera/build install --record /workspace/ros2_ws/build/virtual_realsense_camera/install.log --single-version-externally-managed install_data
+[0.772s] running egg_info
+[0.782s] writing ../../build/virtual_realsense_camera/virtual_realsense_camera.egg-info/PKG-INFO
+[0.783s] writing dependency_links to ../../build/virtual_realsense_camera/virtual_realsense_camera.egg-info/dependency_links.txt
+[0.784s] writing entry points to ../../build/virtual_realsense_camera/virtual_realsense_camera.egg-info/entry_points.txt
+[0.784s] writing requirements to ../../build/virtual_realsense_camera/virtual_realsense_camera.egg-info/requires.txt
+[0.785s] writing top-level names to ../../build/virtual_realsense_camera/virtual_realsense_camera.egg-info/top_level.txt
+[0.806s] reading manifest file '../../build/virtual_realsense_camera/virtual_realsense_camera.egg-info/SOURCES.txt'
+[0.807s] writing manifest file '../../build/virtual_realsense_camera/virtual_realsense_camera.egg-info/SOURCES.txt'
+[0.807s] running build
+[0.807s] running build_py
+[0.807s] copying virtual_realsense_camera/http_camera_bridge_node.py -> /workspace/ros2_ws/build/virtual_realsense_camera/build/lib/virtual_realsense_camera
+[0.808s] running install
+[0.811s] running install_lib
+[0.822s] copying /workspace/ros2_ws/build/virtual_realsense_camera/build/lib/virtual_realsense_camera/http_camera_bridge_node.py -> /workspace/ros2_ws/install/virtual_realsense_camera/lib/python3.12/site-packages/virtual_realsense_camera
+[0.823s] byte-compiling /workspace/ros2_ws/install/virtual_realsense_camera/lib/python3.12/site-packages/virtual_realsense_camera/http_camera_bridge_node.py to http_camera_bridge_node.cpython-312.pyc
+[0.824s] running install_data
+[0.824s] running install_egg_info
+[0.835s] removing '/workspace/ros2_ws/install/virtual_realsense_camera/lib/python3.12/site-packages/virtual_realsense_camera-0.0.0-py3.12.egg-info' (and everything under it)
+[0.837s] Copying ../../build/virtual_realsense_camera/virtual_realsense_camera.egg-info to /workspace/ros2_ws/install/virtual_realsense_camera/lib/python3.12/site-packages/virtual_realsense_camera-0.0.0-py3.12.egg-info
+[0.838s] running install_scripts
+[0.911s] Installing http_camera_bridge script to /workspace/ros2_ws/install/virtual_realsense_camera/lib/virtual_realsense_camera
+[0.912s] Installing rgbd_image_saver script to /workspace/ros2_ws/install/virtual_realsense_camera/lib/virtual_realsense_camera
+[0.912s] Installing virtual_camera_node script to /workspace/ros2_ws/install/virtual_realsense_camera/lib/virtual_realsense_camera
+[0.913s] Installing virtual_color_camera_node script to /workspace/ros2_ws/install/virtual_realsense_camera/lib/virtual_realsense_camera
+[0.913s] Installing virtual_depth_camera_node script to /workspace/ros2_ws/install/virtual_realsense_camera/lib/virtual_realsense_camera
+[0.913s] writing list of installed files to '/workspace/ros2_ws/build/virtual_realsense_camera/install.log'
+[0.931s] Invoked command in '/workspace/ros2_ws/src/virtual_realsense_camera' returned '0': PYTHONPATH=/workspace/ros2_ws/build/virtual_realsense_camera/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/workspace/ros2_ws/install/virtual_realsense_camera/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/virtual_realsense_camera build --build-base /workspace/ros2_ws/build/virtual_realsense_camera/build install --record /workspace/ros2_ws/build/virtual_realsense_camera/install.log --single-version-externally-managed install_data
