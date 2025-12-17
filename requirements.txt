@@ -22,6 +22,6 @@ cmake==3.30.5
 # easy-asr-server
 git+https://github.com/3rd-Musketeer/easy-asr-server.git
 # easy-tts-server
-git+https://github.com/3rd-Musketeer/easy-tts-server.git
+git+https://github.com/3rd-Musketeer/easy-tts-server
 # ten-vad
 git+https://github.com/TEN-framework/ten-vad.git
