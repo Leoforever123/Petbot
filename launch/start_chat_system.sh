@@ -86,7 +86,7 @@ TTS_PID=$!
 sleep 2
 
 echo "Starting Chat Node..."
-python3 chat_node.py &
+python3 ../nodes/chat_node.py &
 CHAT_PID=$!
 
 echo ""

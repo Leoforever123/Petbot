@@ -41,7 +41,7 @@ TTS_PID=$!
 sleep 2
 
 echo "Starting Echo Node..."
-python3 echo_node.py &
+python3 ../nodes/echo_node.py &
 ECHO_PID=$!
 
 echo ""
