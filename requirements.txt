@@ -1,3 +1,10 @@
+# Petbot 统一依赖包
+# 包含核心依赖和可选依赖（ASR/TTS）
+# 如果网络不通，GitHub 依赖可能安装失败，但不影响核心功能
+
+# ==========================================
+# 核心依赖包（必需）
+# ==========================================
 can==0.0.0
 dashscope==1.25.1
 pyyaml==6.0.2
@@ -11,17 +18,33 @@ pyserial==3.5
 python-dotenv==1.2.1
 Requests==2.32.5
 sounddevice==0.5.3
-ten_vad==1.0.6.8
 uvicorn==0.38.0
 opencv-python==4.12.0.88
-torchcodec
-# face recognition
-face-recognition==1.3.0
+
+# face recognition (dlib needs system cmake, not python cmake package)
+# Note: Install system cmake first: sudo apt install cmake
 dlib==19.24.6
-cmake==3.30.5
-# easy-asr-server
-git+https://github.com/3rd-Musketeer/easy-asr-server.git
-# easy-tts-server
-git+https://github.com/3rd-Musketeer/easy-tts-server
-# ten-vad
+face-recognition==1.3.0
+
+# LangGraph and AI
+langgraph
+langchain-openai
+langchain-core
+
+# ==========================================
+# 可选依赖包（ASR/TTS，依赖 GitHub）
+# 如果网络不通可以跳过，但不影响核心功能
+# ==========================================
+
+# torchcodec（视频处理，可选）
+torchcodec
+
+# ten-vad（语音活动检测，可选）
+ten_vad==1.0.6.8
 git+https://github.com/TEN-framework/ten-vad.git
+
+# easy-asr-server（语音识别，可选）
+git+https://github.com/3rd-Musketeer/easy-asr-server.git
+
+# easy-tts-server（语音合成，可选）
+git+https://github.com/3rd-Musketeer/easy-tts-server

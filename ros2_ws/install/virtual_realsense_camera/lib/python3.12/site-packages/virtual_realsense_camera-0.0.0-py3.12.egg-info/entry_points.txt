@@ -1,6 +1,0 @@
-[console_scripts]
-http_camera_bridge = virtual_realsense_camera.http_camera_bridge_node:main
-rgbd_image_saver = virtual_realsense_camera.image_saver_node:main
-virtual_camera_node = virtual_realsense_camera.virtual_camera_node:main
-virtual_color_camera_node = virtual_realsense_camera.virtual_color_camera_node:main
-virtual_depth_camera_node = virtual_realsense_camera.virtual_depth_camera_node:main

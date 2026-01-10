@@ -79,9 +79,12 @@ class CombinedVADASRNode(Node):
         """
         Initialize all node components automatically.
         """
-        self.get_logger().info("Auto-initializing node components...")
+        self.get_logger().info("=" * 60)
+        self.get_logger().info("🎙️  初始化 ASR 语音识别节点")
+        self.get_logger().info("=" * 60)
         
         # Get parameters
+        self.get_logger().info("📋 步骤 1/5: 加载配置参数...")
         self.pipeline = self.get_parameter('pipeline').get_parameter_value().string_value
         self.device = self.get_parameter('device').get_parameter_value().string_value
         self.hotwords = self.get_parameter('hotwords').get_parameter_value().string_value
@@ -98,23 +101,29 @@ class CombinedVADASRNode(Node):
         self.speak_buffer = deque(maxlen=self.vad_buffer_size)
         self.nospeak_buffer = deque(maxlen=self.vad_buffer_size)
 
-        self.get_logger().info(f"ASR Pipeline: {self.pipeline}, Device: {self.device}, Hotwords: '{self.hotwords}'")
-        self.get_logger().info(f"VAD Chunk Size: {self.vad_chunk_size}, Threshold: {self.vad_threshold}, Buffer Size: {self.vad_buffer_size}")
-        self.get_logger().info(f"Pre-speech Buffer Duration: {self.pre_speech_buffer_duration}s ({self.pre_speech_buffer_maxlen} chunks)")
+        self.get_logger().info(f"   - Pipeline: {self.pipeline}")
+        self.get_logger().info(f"   - Device: {self.device}")
+        self.get_logger().info(f"   - Hotwords: '{self.hotwords}'")
+        self.get_logger().info(f"   - Sample Rate: {self.sample_rate} Hz")
+        self.get_logger().info(f"   - VAD Threshold: {self.vad_threshold}")
+        self.get_logger().info("✅ 配置参数加载完成")
 
         # Initialize VAD
+        self.get_logger().info("")
+        self.get_logger().info("🔊 步骤 2/5: 初始化 VAD (语音活动检测)...")
         try:
-            self.get_logger().info("Initializing VAD...")
             self.ten_vad_instance = TenVad(self.vad_chunk_size, self.vad_threshold)
-            self.get_logger().info("VAD initialized successfully.")
+            self.get_logger().info("✅ VAD 初始化成功")
         except Exception as e:
-            self.get_logger().error(f"Failed to initialize VAD: {e}")
+            self.get_logger().error(f"❌ VAD 初始化失败: {e}")
             self.destroy_node()
             return
 
         # Initialize ASR
+        self.get_logger().info("")
+        self.get_logger().info("🤖 步骤 3/5: 加载 ASR 模型 (这可能需要一些时间)...")
+        self.get_logger().info(f"   正在加载 {self.pipeline} 模型...")
         try:
-            self.get_logger().info("Initializing ASR components...")
             self.asr_engine = EasyASR(
                 pipeline=self.pipeline,
                 device=self.device,
@@ -125,21 +134,25 @@ class CombinedVADASRNode(Node):
             
             if self.asr_engine.is_healthy():
                 info = self.asr_engine.get_info()
-                self.get_logger().info(f"ASR device: {info['resolved_device']}, Pipeline loaded: {info['pipeline']}")
-                self.get_logger().info("ASR engine is healthy and ready.")
+                self.get_logger().info(f"✅ ASR 模型加载成功")
+                self.get_logger().info(f"   - Device: {info['resolved_device']}")
+                self.get_logger().info(f"   - Pipeline: {info['pipeline']}")
+                self.get_logger().info(f"   - Status: Ready")
             else:
-                self.get_logger().error("ASR engine health check failed!")
+                self.get_logger().error("❌ ASR 引擎健康检查失败!")
                 self.destroy_node()
                 return
                 
         except Exception as e:
-            self.get_logger().error(f"Failed to initialize ASR: {e}")
+            self.get_logger().error(f"❌ ASR 初始化失败: {e}")
             self.destroy_node()
             return
 
         # Create ASR result publisher
+        self.get_logger().info("")
+        self.get_logger().info("📡 步骤 4/5: 创建 ROS2 通信接口...")
         self.asr_result_publisher = self.create_publisher(String, '/asr_result', 10)
-        self.get_logger().info("Publisher '/asr_result' created.")
+        self.get_logger().info("   ✓ Publisher '/asr_result' 已创建")
         
         # Subscribe to TTS life cycle to prevent echo
         self.tts_life_subscription = self.create_subscription(
@@ -148,7 +161,7 @@ class CombinedVADASRNode(Node):
             self.tts_life_callback,
             10
         )
-        self.get_logger().info("Subscribed to '/tts_life' for echo cancellation.")
+        self.get_logger().info("   ✓ 已订阅 '/tts_life' (回声消除)")
         
         # Subscribe to AI thinking state to pause during LLM processing
         self.ai_thinking_subscription = self.create_subscription(
@@ -157,9 +170,12 @@ class CombinedVADASRNode(Node):
             self.ai_thinking_callback,
             10
         )
-        self.get_logger().info("Subscribed to '/ai_thinking' to pause during AI processing.")
+        self.get_logger().info("   ✓ 已订阅 '/ai_thinking' (AI处理暂停)")
+        self.get_logger().info("✅ ROS2 接口创建完成")
 
         # Initialize PyAudio and start audio processing
+        self.get_logger().info("")
+        self.get_logger().info("🎤 步骤 5/5: 打开音频流...")
         try:
             self.p_audio = pyaudio.PyAudio()
             self.audio_stream = self.p_audio.open(
@@ -169,9 +185,9 @@ class CombinedVADASRNode(Node):
                 input=True,
                 frames_per_buffer=self.vad_chunk_size
             )
-            self.get_logger().info("Audio stream opened successfully.")
+            self.get_logger().info("✅ 音频流已打开")
         except Exception as e:
-            self.get_logger().error(f"Failed to open audio stream: {e}")
+            self.get_logger().error(f"❌ 音频流打开失败: {e}")
             self.destroy_node()
             return
 
@@ -182,11 +198,18 @@ class CombinedVADASRNode(Node):
         self._audio_thread = threading.Thread(target=self._audio_thread_func)
         self._audio_thread.start()
         
-        self.get_logger().info("Node fully initialized and started ASR listening thread.")
+        self.get_logger().info("")
+        self.get_logger().info("=" * 60)
+        self.get_logger().info("🎉 ASR 节点启动成功！正在监听语音输入...")
+        self.get_logger().info("=" * 60)
+        self.get_logger().info("")
+        # 输出就绪标志 - 用于启动脚本检测
+        print("PETBOT_ASR_READY", flush=True)
 
     def _audio_thread_func(self):
         """Thread function for audio processing loop"""
-        self.get_logger().info("Audio processing thread started.")
+        self.get_logger().info("🎯 音频处理线程已启动，开始实时监听...")
+        self.get_logger().info("💡 提示：现在可以对着麦克风说话了！")
         
         while self._audio_thread_running and rclpy.ok():
             try:
@@ -224,17 +247,19 @@ class CombinedVADASRNode(Node):
                     if audio_array is not None:
                         result = self.recognize_audio(audio_array)
                         if result:
-                            self.get_logger().info(f"Recognition Result: {result}")
+                            self.get_logger().info("=" * 60)
+                            self.get_logger().info(f"🎯 识别结果: {result}")
+                            self.get_logger().info("=" * 60)
                             # Publish the result
                             msg = String()
                             msg.data = result
                             if self.asr_result_publisher:
                                 self.asr_result_publisher.publish(msg)
-                                self.get_logger().info(f"Published ASR result: '{result}'")
+                                self.get_logger().info(f"📤 已发布到 /asr_result 话题")
                             else:
-                                self.get_logger().warn("ASR result publisher is not active.")
+                                self.get_logger().warn("⚠️  ASR结果发布器未激活")
                         else:
-                            self.get_logger().info("No transcription result")
+                            self.get_logger().info("ℹ️  未识别到有效内容")
 
             except Exception as e:
                 self.get_logger().error(f"Error in audio processing loop: {e}")
@@ -332,7 +357,7 @@ class CombinedVADASRNode(Node):
         
         # Initialize audio_data with contents of the pre-speech buffer
         self.audio_data = [chunk.astype(np.float32) / 32768.0 for chunk in self.pre_speech_buffer]
-        self.get_logger().info(f"Recording started (speech detected), including {len(self.audio_data)} pre-speech chunks.")
+        self.get_logger().info(f"📼 开始录制 (包含 {len(self.audio_data)} 个预缓冲块)")
     
     def stop_recording(self) -> Optional[np.ndarray]:
         """Stop audio recording and return recorded audio."""
@@ -350,11 +375,11 @@ class CombinedVADASRNode(Node):
         audio_array = np.concatenate(self.audio_data, axis=0)
         duration = len(audio_array) / self.sample_rate
         
-        self.get_logger().info(f"Recording stopped (silence detected). Duration: {duration:.2f}s")
+        self.get_logger().info(f"⏹️  录制完成 (时长: {duration:.2f}秒)")
         
         # Ensure minimum length
         if len(audio_array) < 512: # Minimum samples for ASR
-            self.get_logger().warn("Recording too short (minimum 512 samples required), discarding.")
+            self.get_logger().warn("⚠️  录音太短 (小于512采样点)，已丢弃")
             return None
         
         return audio_array.astype(np.float32)
@@ -366,7 +391,7 @@ class CombinedVADASRNode(Node):
             return None
         
         try:
-            self.get_logger().debug("Recognizing speech...")
+            self.get_logger().info("🔍 正在进行语音识别...")
             start_time = time.time()
             
             result = self.asr_engine.recognize(audio_array)
@@ -374,7 +399,7 @@ class CombinedVADASRNode(Node):
             end_time = time.time()
             processing_time = end_time - start_time
             
-            self.get_logger().debug(f"Recognition completed in {processing_time:.2f}s")
+            self.get_logger().info(f"✅ 识别完成 (耗时: {processing_time:.2f}秒)")
             return result
             
         except Exception as e:
@@ -399,12 +424,12 @@ class CombinedVADASRNode(Node):
         speech_ended = False
         
         if self.vad_state == 0 and len(self.speak_buffer) == self.vad_buffer_size:
-            self.get_logger().info('Speech started')
+            self.get_logger().info('🗣️  检测到语音开始！正在录制...')
             self.vad_state = 1
             speech_started = True
         
         if self.vad_state == 1 and len(self.nospeak_buffer) == self.vad_buffer_size:
-            self.get_logger().info('Speech ended')
+            self.get_logger().info('🔇 语音结束，开始识别...')
             self.vad_state = 0
             speech_ended = True
             

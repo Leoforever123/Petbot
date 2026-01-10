@@ -85,50 +85,79 @@ class TextToSpeechService(Node):
 
     def initialize_node(self):
         """自动初始化节点所有组件"""
-        self.get_logger().info("Configuring TTS node...")
+        self.get_logger().info("=" * 60)
+        self.get_logger().info("🔊 初始化 TTS 语音合成节点")
+        self.get_logger().info("=" * 60)
         
+        self.get_logger().info("📋 步骤 1/3: 配置 TTS 参数...")
         self.callback = Callback()
         self.model = "cosyvoice-v1"
         self.voice = "longxiaochun"
+        self.get_logger().info(f"   - Model: {self.model}")
+        self.get_logger().info(f"   - Voice: {self.voice}")
+        self.get_logger().info("✅ TTS 参数配置完成")
         
         # 创建服务
+        self.get_logger().info("")
+        self.get_logger().info("📡 步骤 2/3: 创建 ROS2 服务和话题...")
         # 等待的tts服务
         self.srv_wait = self.create_service(SetString, 'tts_service_wait', self.tts_callback_wait)
+        self.get_logger().info("   ✓ Service 'tts_service_wait' 已创建")
         # 处理tts服务
         self.srv = self.create_service(SetString, 'tts_service', self.tts_callback)
+        self.get_logger().info("   ✓ Service 'tts_service' 已创建")
         # 发送说话内容
         self.tts_publisher = self.create_publisher(String, "tts_topic", 10)
+        self.get_logger().info("   ✓ Publisher 'tts_topic' 已创建")
         # 负责打断tts
         self.subscription = self.create_subscription(String, 'speech_interrupt', self.interrupt_topic_callback, 10)
+        self.get_logger().info("   ✓ 已订阅 'speech_interrupt' (打断控制)")
         # 用于发布tts结束与否的信息
         self.tts_life_publisher = self.create_publisher(String, 'tts_life', 10)
+        self.get_logger().info("   ✓ Publisher 'tts_life' 已创建")
+        self.get_logger().info("✅ ROS2 接口创建完成")
         
         # 当前是否在说话
         self.state = False
-        self.tts = create_tts_engine()
         
-        self.get_logger().info("Text-to-Speech service is ready and activated!")
+        self.get_logger().info("")
+        self.get_logger().info("🤖 步骤 3/3: 加载 TTS 引擎 (这可能需要一些时间)...")
+        self.get_logger().info("   正在加载语音合成模型...")
+        self.tts = create_tts_engine()
+        self.get_logger().info("✅ TTS 引擎加载成功")
+        
+        self.get_logger().info("")
+        self.get_logger().info("=" * 60)
+        self.get_logger().info("🎉 TTS 节点启动成功！准备进行语音合成...")
+        self.get_logger().info("=" * 60)
+        self.get_logger().info("")
+        # 输出就绪标志 - 用于启动脚本检测
+        print("PETBOT_TTS_READY", flush=True)
 
     # 直接播放语音
     def speak(self, text: str):
-        print('start_speak')
+        self.get_logger().info(f'🔊 开始语音合成: "{text}"')
         try:
+            chunk_count = 0
             for audio_chunk in self.tts.tts_stream(text, 'zh'):
-                print('audio')
+                chunk_count += 1
+                if chunk_count == 1:
+                    self.get_logger().info('🎵 开始播放音频流...')
                 if interrupt_event.is_set():
+                    self.get_logger().info('⚠️  语音播放被中断')
                     break
                 sd.play(audio_chunk, self.tts.sample_rate)
                 while not interrupt_event.is_set() and sd.get_stream().active:
                     time.sleep(0.1)
                 sd.stop()
             
-            self.get_logger().info('generate finish')
+            self.get_logger().info(f'✅ 语音合成完成 (共 {chunk_count} 个音频块)')
             self.state = False
             self.tts_life_publisher.publish(String(data='end'))
             try:
                 res = requests.post("http://localhost:8001/expression/neutral")
             except:
-                self.get_logger().info('no emotion server')
+                self.get_logger().info('ℹ️  表情服务器未启动')
 
             return True
         finally:
@@ -136,9 +165,11 @@ class TextToSpeechService(Node):
                 synthesizer.close()
 
     def tts_callback_wait(self, request, response):
+        if self.state:
+            self.get_logger().info("⏳ 等待当前语音播放完成...")
         while self.state:
             time.sleep(0.5)
-        self.get_logger().info(f"Received text: {request.data}")
+        self.get_logger().info(f"📝 收到文本 (wait模式): {request.data}")
         interrupt_event.clear()
         self.tts_life_publisher.publish(String(data='start'))
         self.tts_publisher.publish(String(data=request.data))
@@ -151,7 +182,7 @@ class TextToSpeechService(Node):
         这个回调函数接收一个字符串，并调用文本到语音的操作。
         返回一个布尔值，表示操作是否成功。
         """
-        self.get_logger().info(f"Received text: {request.data}")
+        self.get_logger().info(f"📝 收到文本 (async模式): {request.data}")
         
         self.state = True
         self.tts_life_publisher.publish(String(data='start'))
@@ -160,6 +191,7 @@ class TextToSpeechService(Node):
         interrupt_event.clear()
         self.speech_thread = threading.Thread(target=self.speak, args=(request.data,))
         self.speech_thread.start()
+        self.get_logger().info("🚀 语音合成线程已启动")
         
         # 返回True表示成功，False表示失败
         response.success = True
@@ -168,7 +200,7 @@ class TextToSpeechService(Node):
     def interrupt_topic_callback(self, msg):
         if not self.state:
             return
-        self.get_logger().info("Interrupt signal received via topic.")
+        self.get_logger().info("🛑 收到打断信号，停止当前语音播放")
         interrupt_event.set()
         self.state = False
 
